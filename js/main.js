@@ -1,18 +1,8 @@
-window.onload = function() {
-
+function main(e) {
     var mic = document.getElementById("microphone");
     var audio = document.getElementById("audio");
     var fftCanvas = document.getElementById("fftCanvas");
     var fftDiffCanvas = document.getElementById("fftDiffCanvas");
-
-    var getUM = Modernizr.prefixed("getUserMedia", navigator);
-    getUM({audio: true}, function(stream) {
-        console.log(stream);
-        mic.src = window.URL.createObjectURL(stream);
-        mic.onloadedmetadata = function(e) {
-            console.log(e);
-        }
-    }, function(e) { console.log(e) });
 
     var fftCtx = fftCanvas.getContext("2d");
     var fftDiffCtx = fftDiffCanvas.getContext("2d");
@@ -21,19 +11,20 @@ window.onload = function() {
     var audioSrc = audioCtx.createMediaElementSource(audio);
     var micSrc = audioCtx.createMediaElementSource(mic);
     var analyser = audioCtx.createAnalyser();
+
     micSrc.connect(analyser);
     micSrc.connect(audioCtx.destination);
 
     // fftSize is 2* number of bins.
-    // we actually want 4 bins per vertical pixel because the Uint8ClampedArray passed to putImageData is
-    // interpreted as successive RGBA sets.
+    // We actually want 4 bins per vertical pixel because the Uint8ClampedArray
+    // passed to putImageData is interpreted as successive RGBA sets.
     try {
-      analyser.fftSize = fftCanvas.height * 8;
-      if (analyser.frequencyBinCount != fftCanvas.height * 4) {
-          console.log("wat");
-      }
+        analyser.fftSize = fftCanvas.height * 8;
+        if (analyser.frequencyBinCount != fftCanvas.height * 4) {
+            console.log("wat");
+        }
     } catch (e) {
-      console.log("CANVAS HEIGHT MUST BE A POWER OF 2");
+        console.log("CANVAS HEIGHT MUST BE A POWER OF 2");
     }
 
     var freqData = new Uint8Array(analyser.frequencyBinCount);
@@ -83,4 +74,16 @@ window.onload = function() {
     audio.addEventListener("pause", function() {
         playing = false;
     });
+
+}
+window.onload = function() {
+
+    var getUM = Modernizr.prefixed("getUserMedia", navigator);
+    getUM({audio: true}, function(stream) {
+        console.log(stream);
+        var mic = document.getElementById("microphone");
+        mic.src = window.URL.createObjectURL(stream);
+        mic.onloadedmetadata = main;
+    }, function(e) { console.log(e) });
+
 }
