@@ -1,8 +1,9 @@
 window.onload = function() {
     audio = document.getElementById("audio");
-    canvas = document.getElementById("canvas");
-
-    var drawCtx = canvas.getContext("2d");
+    fftCanvas = document.getElementById("fftCanvas");
+    fftDiffCanvas = document.getElementById("fftDiffCanvas");
+    var fftCtx = fftCanvas.getContext("2d");
+    var fftDiffCtx = fftDiffCanvas.getContext("2d");
 
     var audioCtx = new AudioContext();
     var audioSrc = audioCtx.createMediaElementSource(audio);
@@ -10,9 +11,12 @@ window.onload = function() {
     audioSrc.connect(analyser);
     audioSrc.connect(audioCtx.destination);
 
+    // fftSize is 2* number of bins.
+    // we actually want 4 bins per vertical pixel because the Uint8ClampedArray passed to putImageData is
+    // interpreted as successive RGBA sets.
     try {
-      analyser.fftSize = canvas.height * 8;
-      if (analyser.frequencyBinCount != canvas.height * 4) {
+      analyser.fftSize = fftCanvas.height * 8;
+      if (analyser.frequencyBinCount != fftCanvas.height * 4) {
           console.log("wat");
       }
     } catch (e) {
@@ -20,24 +24,39 @@ window.onload = function() {
     }
 
     var freqData = new Uint8Array(analyser.frequencyBinCount);
+    // Initialise this so we don't have to bother with checking if it's the first iteration.
+    var prevColumn = new Uint8ClampedArray(freqData.length);
+    var diffColumn = new Uint8ClampedArray(freqData.length);
 
     var columnPos = 0;
     var playing = false;
     function renderFrame() {
         if (playing) requestAnimationFrame(renderFrame);
-        // update data in frequencyData
+
+        // Fourier transform
         analyser.getByteFrequencyData(freqData);
         var column = new Uint8ClampedArray(freqData, 0, freqData.length);
         var imageData = new ImageData(column, 1);
-        drawCtx.putImageData(imageData, columnPos, 0);
-        columnPos = (columnPos + 1) % canvas.width;
+        fftCtx.putImageData(imageData, columnPos, 0);
+
+        // Work out differences between this frame and last one
+        // So basically this sort of sucks - instead we should do a
+        // little convolution: look at 2 or 3 previous columns. TODO
+        for (var i = 0; i < column.length; i++) {
+            diffColumn[i] = Math.abs(column[i] - prevColumn[i]) * 2;
+        }
+        var diffImageData = new ImageData(diffColumn, 1);
+        fftDiffCtx.putImageData(diffImageData, columnPos, 1);
+
+        columnPos = (columnPos + 1) % fftCanvas.width;
+        prevColumn = column;
     }
 
     audio.addEventListener("play", function() {
         playing = true;
-        renderFrame()
+        renderFrame();
     });
     audio.addEventListener("pause", function() {
-        playing = false
+        playing = false;
     });
 }
