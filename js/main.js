@@ -42,11 +42,20 @@ window.onload = function() {
         // Work out differences between this frame and last one
         // So basically this sort of sucks - instead we should do a
         // little convolution: look at 2 or 3 previous columns. TODO
+        var sum = 0;
         for (var i = 0; i < column.length; i++) {
-            diffColumn[i] = Math.abs(column[i] - prevColumn[i]) * 2;
+            diffColumn[i] = Math.abs(column[i] - prevColumn[i]) * 4;
+            sum += diffColumn[i];
         }
         var diffImageData = new ImageData(diffColumn, 1);
         fftDiffCtx.putImageData(diffImageData, columnPos, 1);
+
+        // Try flickering the background when shit changes...
+        // TODO: obviously should do this with different colours for different bins!
+        // Also there's probably a way to make it not look shit by smoothing it a bit.
+        var s = "rgb(" + Math.floor(sum / fftDiffCanvas.height) + ", 0, 0)";
+        console.log(s);
+        document.body.style.background = s;
 
         columnPos = (columnPos + 1) % fftCanvas.width;
         prevColumn = column;
