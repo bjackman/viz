@@ -1,5 +1,4 @@
-function main(e) {
-    var mic = document.getElementById("microphone");
+function main(stream) {
     var audio = document.getElementById("audio");
     var fftCanvas = document.getElementById("fftCanvas");
     var fftDiffCanvas = document.getElementById("fftDiffCanvas");
@@ -9,7 +8,7 @@ function main(e) {
 
     var audioCtx = new AudioContext();
     var audioSrc = audioCtx.createMediaElementSource(audio);
-    var micSrc = audioCtx.createMediaElementSource(mic);
+    var micSrc = audioCtx.createMediaStreamSource(stream);
     var analyser = audioCtx.createAnalyser();
 
     micSrc.connect(analyser);
@@ -45,8 +44,8 @@ function main(e) {
         fftCtx.putImageData(imageData, columnPos, 0);
 
         // Work out differences between this frame and last one
-        // So basically this sort of sucks - instead we should do a
-        // little convolution: look at 2 or 3 previous columns. TODO
+        // So basically this sort of sucks - instead we should do a little
+        // convolution: look at 2 or 3 previous columns. TODO
         var sum = 0;
         for (var i = 0; i < column.length; i++) {
             diffColumn[i] = Math.abs(column[i] - prevColumn[i]) * 4;
@@ -79,11 +78,6 @@ function main(e) {
 window.onload = function() {
 
     var getUM = Modernizr.prefixed("getUserMedia", navigator);
-    getUM({audio: true}, function(stream) {
-        console.log(stream);
-        var mic = document.getElementById("microphone");
-        mic.src = window.URL.createObjectURL(stream);
-        mic.onloadedmetadata = main;
-    }, function(e) { console.log(e) });
+    getUM({audio: true}, main, function(e) { console.log(e) });
 
 }
