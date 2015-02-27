@@ -1,0 +1,3 @@
+[submodule "js/hough-transform"]
+	path = js/hough-transform
+	url = https://github.com/gmarty/hough-transform-js.git
