@@ -1,15 +1,28 @@
 window.onload = function() {
-    audio = document.getElementById("audio");
-    fftCanvas = document.getElementById("fftCanvas");
-    fftDiffCanvas = document.getElementById("fftDiffCanvas");
+
+    var mic = document.getElementById("microphone");
+    var audio = document.getElementById("audio");
+    var fftCanvas = document.getElementById("fftCanvas");
+    var fftDiffCanvas = document.getElementById("fftDiffCanvas");
+
+    var getUM = Modernizr.prefixed("getUserMedia", navigator);
+    getUM({audio: true}, function(stream) {
+        console.log(stream);
+        mic.src = window.URL.createObjectURL(stream);
+        mic.onloadedmetadata = function(e) {
+            console.log(e);
+        }
+    }, function(e) { console.log(e) });
+
     var fftCtx = fftCanvas.getContext("2d");
     var fftDiffCtx = fftDiffCanvas.getContext("2d");
 
     var audioCtx = new AudioContext();
     var audioSrc = audioCtx.createMediaElementSource(audio);
+    var micSrc = audioCtx.createMediaElementSource(mic);
     var analyser = audioCtx.createAnalyser();
-    audioSrc.connect(analyser);
-    audioSrc.connect(audioCtx.destination);
+    micSrc.connect(analyser);
+    micSrc.connect(audioCtx.destination);
 
     // fftSize is 2* number of bins.
     // we actually want 4 bins per vertical pixel because the Uint8ClampedArray passed to putImageData is
@@ -24,7 +37,8 @@ window.onload = function() {
     }
 
     var freqData = new Uint8Array(analyser.frequencyBinCount);
-    // Initialise this so we don't have to bother with checking if it's the first iteration.
+    // Initialise this so we don't have to bother with checking if
+    // it's the first iteration.
     var prevColumn = new Uint8ClampedArray(freqData.length);
     var diffColumn = new Uint8ClampedArray(freqData.length);
 
@@ -51,10 +65,11 @@ window.onload = function() {
         fftDiffCtx.putImageData(diffImageData, columnPos, 1);
 
         // Try flickering the background when shit changes...
-        // TODO: obviously should do this with different colours for different bins!
-        // Also there's probably a way to make it not look shit by smoothing it a bit.
+        // TODO: obviously should do this with different colours for
+        // different bins!  Also there's probably a way to make it not
+        // look shit by smoothing it a bit.
         var s = "rgb(" + Math.floor(sum / fftDiffCanvas.height) + ", 0, 0)";
-        console.log(s);
+        // console.log(s);
         document.body.style.background = s;
 
         columnPos = (columnPos + 1) % fftCanvas.width;
